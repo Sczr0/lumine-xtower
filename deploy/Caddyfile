@@ -1,13 +1,12 @@
-# Lumine — VPS 端 Caddy 配置
-# 角色: 接收 CHAME CDN / Cloudflare 回源，分发到后端和静态文件
-#
-# 放置: /etc/caddy/Caddyfile
+# Lumine — Caddy 站点片段
+# 放置: /etc/caddy/sites/lumine
+# 主 Caddyfile 需包含: import sites/*
 # 重载: sudo systemctl reload caddy
 #
 # 流量路径:
-#   lumine.xtower.site → CHAME CDN → VPS Caddy → /v1/* → :3000
+#   lumine.xtower.site → CHAME CDN → VPS Caddy → /v1/* → :3001
 #                                                  /*    → 静态文件
-#   admin.lumine.xtower.site → CF Zero Trust → VPS Caddy → /admin/* → :3000
+#   admin.lumine.xtower.site → CF Zero Trust → VPS Caddy → /admin/* → :3001
 #                                                          /*       → tagging 静态
 
 # ============================================================
@@ -17,7 +16,7 @@
 lumine.xtower.site:80 {
     # API → Rust 后端
     handle /v1/* {
-        reverse_proxy localhost:3000 {
+        reverse_proxy localhost:3001 {
             header_up Host {host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}
@@ -64,7 +63,7 @@ admin.lumine.xtower.site:443 {
 
     # API（打标台调用）
     handle /admin/* {
-        reverse_proxy localhost:3000 {
+        reverse_proxy localhost:3001 {
             header_up Host {host}
             header_up X-Forwarded-For {remote_host}
             header_up X-Forwarded-Proto {scheme}

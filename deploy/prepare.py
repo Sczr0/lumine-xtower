@@ -58,19 +58,19 @@ def main():
 
     # 创建目录结构
     dirs = [
-        DST / "caddy",
-        DST / "systemd",
+        DST / "etc" / "caddy" / "sites",
+        DST / "etc" / "systemd" / "system",
         DST / "opt" / "lumine" / "data",
         DST / "opt" / "lumine" / "static" / "tagging",
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
 
-    # Caddyfile
+    # Caddy 站点片段
     caddyfile = ROOT / "deploy" / "Caddyfile"
     if caddyfile.exists():
-        shutil.copy2(caddyfile, DST / "caddy" / "Caddyfile")
-        print(f"  + deploy/vps/caddy/Caddyfile")
+        shutil.copy2(caddyfile, DST / "etc" / "caddy" / "sites" / "lumine")
+        print(f"  + deploy/vps/etc/caddy/sites/lumine")
 
     # 前端静态文件
     if (frontend_dist).exists():
@@ -132,8 +132,8 @@ Environment=RUST_LOG=info
 [Install]
 WantedBy=multi-user.target
 """
-    (DST / "systemd" / "lumine.service").write_text(service_content)
-    print(f"  + deploy/vps/systemd/lumine.service")
+    (DST / "etc" / "systemd" / "system" / "lumine.service").write_text(service_content)
+    print(f"  + deploy/vps/etc/systemd/system/lumine.service")
 
     # ── gitignore ──
     (DST / ".gitignore").write_text("# 全部忽略，防止误提交构建产物和敏感文件\n*\n!.gitignore\n")

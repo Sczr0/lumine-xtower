@@ -37,8 +37,9 @@ echo "[4/5] 收集部署文件..."
 
 DST="deploy/vps"
 
-# Caddyfile
-cp -v deploy/Caddyfile "$DST/caddy/"
+# Caddy 站点片段
+mkdir -p "$DST/etc/caddy/sites"
+cp -v deploy/Caddyfile "$DST/etc/caddy/sites/lumine"
 
 # 前端静态文件
 rsync -av --delete frontend/dist/ "$DST/opt/lumine/static/"

@@ -63,8 +63,9 @@ jobs:
           # 打标台（Svelte SPA，构建输出到 backend/static/tagging/）
           cp -r backend/static/tagging/* deploy-package/opt/lumine/static/tagging/
 
-          # Caddy 配置 → /etc/caddy/Caddyfile
-          cp deploy/Caddyfile deploy-package/etc/caddy/
+          # Caddy 站点片段 → /etc/caddy/sites/lumine
+          mkdir -p deploy-package/etc/caddy/sites
+          cp deploy/Caddyfile deploy-package/etc/caddy/sites/lumine
 
           # systemd 服务 → /etc/systemd/system/lumine.service
           cat > deploy-package/etc/systemd/system/lumine.service << 'EOF'
@@ -120,14 +121,19 @@ jobs:
               sudo rsync -av --delete "$SRC/opt/lumine/static/" /opt/lumine/static/
             fi
 
-            echo "=== 安装 Caddyfile ==="
-            sudo cp -v "$SRC/etc/caddy/Caddyfile" /etc/caddy/
+            echo "=== 安装 Caddy 站点片段 ==="
+            sudo mkdir -p /etc/caddy/sites
+            sudo cp -v "$SRC/etc/caddy/sites/lumine" /etc/caddy/sites/lumine
 
             echo "=== 安装 systemd 服务 ==="
             sudo cp -v "$SRC/etc/systemd/system/lumine.service" /etc/systemd/system/
 
             echo "=== 刷新权限 ==="
-            sudo chown -R lumine:lumine /opt/lumine
+            if id lumine &>/dev/null; then
+              sudo chown -R lumine:lumine /opt/lumine
+            else
+              echo "警告: lumine 用户不存在，跳过 chown（首次部署需手动创建）"
+            fi
 
             echo "=== 重启服务 ==="
             sudo systemctl daemon-reload

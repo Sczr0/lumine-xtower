@@ -10,8 +10,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/admin': 'http://localhost:3000',
-      '/v1': 'http://localhost:3000',
+      '/admin': 'http://localhost:3001',
+      '/v1': 'http://localhost:3001',
     },
   },
 });
