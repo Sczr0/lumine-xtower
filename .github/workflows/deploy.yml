@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  RUST_VERSION: "1.85"
+  RUST_VERSION: "1.86"
 
 jobs:
   build-and-deploy:
