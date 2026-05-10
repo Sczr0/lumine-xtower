@@ -60,8 +60,8 @@ jobs:
           # 前端静态（Astro 构建的首页、协议页等）
           cp -r frontend/dist/* deploy-package/opt/lumine/static/
 
-          # 打标台（Svelte SPA）
-          cp -r frontend/tagging/dist/* deploy-package/opt/lumine/static/tagging/
+          # 打标台（Svelte SPA，构建输出到 backend/static/tagging/）
+          cp -r backend/static/tagging/* deploy-package/opt/lumine/static/tagging/
 
           # Caddy 配置 → /etc/caddy/Caddyfile
           cp deploy/Caddyfile deploy-package/etc/caddy/

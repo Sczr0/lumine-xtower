@@ -341,23 +341,20 @@
             <input bind:value={form.source_url} placeholder="https://" />
           </div>
           <div class="field">
-            <label>画师</label>
-            <input bind:value={form.artist} placeholder="画师名" />
+            <label>画师 <input bind:value={form.artist} placeholder="画师名" /></label>
           </div>
         </div>
 
         <div class="form-row">
           <div class="field">
-            <label>授权状态</label>
-            <select bind:value={form.authorization}>
+            <label>授权状态 <select bind:value={form.authorization}>
               <option value="official">官方授权</option>
               <option value="submitted">投稿授权</option>
               <option value="unknown">未确认</option>
-            </select>
+            </select></label>
           </div>
           <div class="field">
-            <label>权重</label>
-            <input type="number" bind:value={form.weight} min="0" max="999" />
+            <label>权重 <input type="number" bind:value={form.weight} min="0" max="999" /></label>
           </div>
         </div>
 
@@ -369,8 +366,7 @@
             </label>
           </div>
           <div class="field">
-            <label>审核备注</label>
-            <input bind:value={form.review_comment} placeholder="驳回原因等" />
+            <label>审核备注 <input bind:value={form.review_comment} placeholder="驳回原因等" /></label>
           </div>
         </div>
 
@@ -436,6 +432,10 @@
   .field input, .field select {
     padding: 0.4rem 0.6rem; border: 1px solid #d1d5db; border-radius: 6px;
     font-size: 0.85rem;
+  }
+  /* label 嵌套 input/select 时保持上下排列 */
+  label:has(> input), label:has(> select) {
+    display: flex; flex-direction: column; gap: 0.25rem;
   }
 
   /* ── 标签输入 ── */
