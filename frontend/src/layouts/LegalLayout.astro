@@ -1,0 +1,24 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+const { frontmatter } = Astro.props;
+---
+
+<BaseLayout title={frontmatter.title}>
+  <article class="prose">
+    <slot />
+  </article>
+</BaseLayout>
+
+<style>
+  .prose {
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .prose {
+      padding: 1.5rem 1rem;
+    }
+  }
+</style>

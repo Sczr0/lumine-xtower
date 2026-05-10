@@ -1,0 +1,26 @@
+# 构建产物
+node_modules/
+dist/
+target/
+
+# 敏感文件
+.env
+.env.*
+*.db
+*.db-*
+
+# 运行时生成
+output/
+deploy/vps/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# ide
+.spec-workflow
+
+# 其他
+
+deploy/DEPLOY.md
+tmp

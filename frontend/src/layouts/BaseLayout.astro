@@ -1,0 +1,235 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Lumine — 米哈游随机图 API' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title} — Lumine</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles/global.css" />
+    <meta property="og:title" content={`${title} — Lumine`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={Astro.url.href} />
+    <meta property="og:site_name" content="Lumine" />
+  </head>
+  <body>
+    <header class="header">
+      <nav class="nav container">
+        <a href="/" class="logo">Lumine</a>
+        <button class="menu-toggle" aria-label="菜单">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <div class="nav-links">
+          <a href="/submit">投稿</a>
+          <a href="/feedback">反馈</a>
+          <a href="/terms">用户协议</a>
+          <a href="/privacy">隐私政策</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <slot />
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <p>
+          Lumine 是一个非官方的米哈游主题图片收集项目。
+        </p>
+        <p class="footer-sub">
+          <a href="/terms">用户协议</a> · <a href="/privacy">隐私政策</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  @media (prefers-color-scheme: light) {
+    .header {
+      background: rgba(250, 250, 250, 0.8);
+    }
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+  }
+
+  .logo {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+    transition: opacity var(--transition);
+  }
+
+  .logo:hover {
+    opacity: 0.7;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 0.125rem;
+  }
+
+  .nav-links a {
+    color: var(--text-2);
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 400;
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition), background var(--transition);
+  }
+
+  .nav-links a:hover {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+
+  .menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition);
+  }
+
+  .menu-toggle:hover {
+    background: var(--bg-hover);
+  }
+
+  .menu-toggle span {
+    display: block;
+    width: 18px;
+    height: 1.5px;
+    background: var(--text);
+    margin: 4px 0;
+    border-radius: 1px;
+    transition: all 0.2s ease;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .main {
+    flex: 1;
+    width: 100%;
+  }
+
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 0;
+    text-align: center;
+  }
+
+  .footer p {
+    font-size: 0.78rem;
+    color: var(--text-3);
+    margin: 0;
+  }
+
+  .footer a {
+    color: var(--text-2);
+    transition: color var(--transition);
+  }
+
+  .footer a:hover {
+    color: var(--text);
+  }
+
+  .footer-sub {
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .menu-toggle {
+      display: block;
+    }
+
+    .nav-links {
+      display: none;
+      position: absolute;
+      top: 52px;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      flex-direction: column;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      gap: 0;
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    .nav-links.active {
+      display: flex;
+    }
+
+    .nav-links a {
+      padding: 0.5rem 0.6rem;
+      border-radius: var(--radius-sm);
+    }
+  }
+</style>
+
+<script>
+  const menuToggle = document.querySelector('.menu-toggle');
+  const navLinks = document.querySelector('.nav-links');
+
+  function closeMenu() {
+    navLinks?.classList.remove('active');
+  }
+
+  menuToggle?.addEventListener('click', () => {
+    navLinks?.classList.toggle('active');
+  });
+
+  navLinks?.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', closeMenu);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (navLinks?.classList.contains('active') && !e.target.closest('.nav')) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+</script>

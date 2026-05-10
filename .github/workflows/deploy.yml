@@ -1,0 +1,143 @@
+name: 构建并部署到 VPS
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+
+env:
+  RUST_VERSION: "1.85"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # ── 检出 ──
+      - uses: actions/checkout@v4
+
+      # ── Rust 后端 ──
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Build Rust backend
+        run: cargo build --release
+        working-directory: backend
+
+      # ── 前端 (Astro) ──
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build
+        working-directory: frontend
+
+      # ── 打标台 (Svelte/Vite) ──
+      - name: Build tagging tool
+        run: |
+          npm ci
+          npm run build
+        working-directory: frontend/tagging
+        env:
+          VITE_IMAGE_BASE: ${{ secrets.VITE_IMAGE_BASE }}
+
+      # ── 组装部署包（目录结构精确对应 VPS 路径）──
+      - name: Assemble deploy package
+        run: |
+          mkdir -p deploy-package/opt/lumine/data
+          mkdir -p deploy-package/opt/lumine/static/tagging
+          mkdir -p deploy-package/etc/caddy
+          mkdir -p deploy-package/etc/systemd/system
+
+          # 后端二进制
+          cp backend/target/release/lumine-api deploy-package/opt/lumine/
+
+          # 前端静态（Astro 构建的首页、协议页等）
+          cp -r frontend/dist/* deploy-package/opt/lumine/static/
+
+          # 打标台（Svelte SPA）
+          cp -r frontend/tagging/dist/* deploy-package/opt/lumine/static/tagging/
+
+          # Caddy 配置 → /etc/caddy/Caddyfile
+          cp deploy/Caddyfile deploy-package/etc/caddy/
+
+          # systemd 服务 → /etc/systemd/system/lumine.service
+          cat > deploy-package/etc/systemd/system/lumine.service << 'EOF'
+          [Unit]
+          Description=Lumine API Server
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=lumine
+          WorkingDirectory=/opt/lumine
+          ExecStart=/opt/lumine/lumine-api
+          Restart=always
+          RestartSec=5
+          Environment=RUST_LOG=info
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          echo "部署包结构:"
+          find deploy-package -type f | sort
+
+      # ── 上传到 VPS（先放到用户目录，再用 sudo 搬）──
+      - name: Upload to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: deploy-package/
+          target: /tmp/lumine-deploy
+          strip_components: 1
+          overwrite: true
+
+      # ── 安装并重启 ──
+      - name: Install and restart
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            SRC=/tmp/lumine-deploy
+
+            echo "=== 安装后端 + 静态文件 ==="
+            sudo mkdir -p /opt/lumine/data /opt/lumine/static
+            sudo cp -v "$SRC/opt/lumine/lumine-api" /opt/lumine/
+            sudo chmod +x /opt/lumine/lumine-api
+
+            if [ -d "$SRC/opt/lumine/static" ]; then
+              sudo rsync -av --delete "$SRC/opt/lumine/static/" /opt/lumine/static/
+            fi
+
+            echo "=== 安装 Caddyfile ==="
+            sudo cp -v "$SRC/etc/caddy/Caddyfile" /etc/caddy/
+
+            echo "=== 安装 systemd 服务 ==="
+            sudo cp -v "$SRC/etc/systemd/system/lumine.service" /etc/systemd/system/
+
+            echo "=== 刷新权限 ==="
+            sudo chown -R lumine:lumine /opt/lumine
+
+            echo "=== 重启服务 ==="
+            sudo systemctl daemon-reload
+            sudo systemctl restart lumine caddy
+
+            echo "=== 状态 ==="
+            sudo systemctl status lumine --no-pager -l
+            sudo systemctl status caddy --no-pager -l
+
+            echo "=== 清理 ==="
+            rm -rf /tmp/lumine-deploy
+
+            echo "=== 部署完成 ==="
