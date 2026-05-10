@@ -233,14 +233,28 @@ def process_one(args: tuple) -> tuple | None:
 # ─── 数据库写入 ───────────────────────────────────────
 
 
-def load_existing_md5(db_path: str) -> set:
-    if not os.path.exists(db_path):
-        return set()
-    conn = sqlite3.connect(db_path)
-    cur = conn.execute("SELECT md5_hash FROM images WHERE md5_hash IS NOT NULL")
-    existing = {row[0] for row in cur.fetchall()}
-    conn.close()
+def load_existing_md5(db_path: str, source_dir: str = None) -> set:
+    """加载已存在的 MD5（数据库 + 源目录导入日志）"""
+    existing = set()
+    if os.path.exists(db_path):
+        conn = sqlite3.connect(db_path)
+        cur = conn.execute("SELECT md5_hash FROM images WHERE md5_hash IS NOT NULL")
+        existing = {row[0] for row in cur.fetchall()}
+        conn.close()
+    # 第二道防线：源目录的导入日志（独立于数据库，防止记录被删后重复导入）
+    if source_dir:
+        journal = Path(source_dir) / ".imported_md5"
+        if journal.exists():
+            existing |= set(journal.read_text().splitlines())
     return existing
+
+
+def save_source_journal(source_dir: str, md5s: list):
+    """追加 MD5 到源目录日志"""
+    journal = Path(source_dir) / ".imported_md5"
+    with open(journal, "a") as f:
+        for m in md5s:
+            f.write(f"{m}\n")
 
 
 def write_to_db(db_path: str, records: list):
@@ -363,9 +377,9 @@ def main():
     if not files:
         return
 
-    # 加载已存在的 MD5
-    existing_md5 = load_existing_md5(args.db) if not args.dry_run else set()
-    print(f"数据库已有 {len(existing_md5)} 个 MD5 (去重用)")
+    # 加载已存在的 MD5（数据库 + 源目录日志）
+    existing_md5 = load_existing_md5(args.db, args.directory) if not args.dry_run else set()
+    print(f"已有 {len(existing_md5)} 个 MD5 (去重用)")
 
     # 并行处理
     worker_args = [
@@ -419,6 +433,12 @@ def main():
 
     # 写入数据库
     write_to_db(args.db, records)
+
+    # 源目录导入日志（防止数据库记录被删后重复导入）
+    new_md5s = [r[26] for r in records if r[26]]
+    if new_md5s:
+        save_source_journal(args.directory, new_md5s)
+        print(f"已记录 {len(new_md5s)} 个 MD5 到源目录日志")
 
     # 生成 CF Pages _headers
     write_headers(args.output_dir)
