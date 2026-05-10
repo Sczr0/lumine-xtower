@@ -112,6 +112,9 @@ jobs:
             set -e
             SRC=/tmp/lumine-deploy
 
+            echo "=== 停止后端（释放二进制文件）==="
+            sudo systemctl stop lumine || true
+
             echo "=== 安装后端 + 静态文件 ==="
             sudo mkdir -p /opt/lumine/data /opt/lumine/static
             sudo cp -v "$SRC/opt/lumine/lumine-api" /opt/lumine/
