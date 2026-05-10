@@ -51,12 +51,20 @@ pub struct RandomResponse {
     pub characters: Option<Vec<String>>,
     pub tags: Option<Vec<String>>,
     pub dominant_color: Option<String>,
+    pub hue: Option<i32>,
+    pub saturation: Option<i32>,
+    pub value: Option<i32>,
     pub orientation: String,
     pub width: i32,
     pub height: i32,
+    pub file_size: i32,
+    pub blurhash: Option<String>,
+    pub phash: Option<String>,
     pub source_type: String,
+    pub source_url: Option<String>,
     pub artist: Option<String>,
     pub authorization: String,
+    pub is_ai: bool,
 }
 
 impl From<(ImageRecord, &str)> for RandomResponse {
@@ -67,16 +75,24 @@ impl From<(ImageRecord, &str)> for RandomResponse {
             thumbnail_url: rec
                 .thumbnail_path
                 .map(|t| format!("{cdn_base}/{t}")),
+            game: rec.game,
             characters: rec.characters.and_then(|s| serde_json::from_str(&s).ok()),
             tags: rec.tags.and_then(|s| serde_json::from_str(&s).ok()),
-            game: rec.game,
             dominant_color: rec.dominant_color,
+            hue: rec.hue,
+            saturation: rec.saturation,
+            value: rec.value,
             orientation: rec.orientation,
             width: rec.width,
             height: rec.height,
+            file_size: rec.file_size,
+            blurhash: rec.blurhash,
+            phash: rec.phash,
             source_type: rec.source_type,
+            source_url: rec.source_url,
             artist: rec.artist,
             authorization: rec.authorization,
+            is_ai: rec.is_ai,
         }
     }
 }

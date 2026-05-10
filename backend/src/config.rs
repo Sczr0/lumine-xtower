@@ -13,7 +13,7 @@ impl Config {
             database_url: std::env::var("DATABASE_URL")
                 .unwrap_or_else(|_| "sqlite://./data/lumine.db".into()),
             cdn_base_url: std::env::var("CDN_BASE_URL")
-                .unwrap_or_else(|_| "https://images.xtower.site".into()),
+                .unwrap_or_else(|_| "https://lumine-images.xtower.site".into()),
             static_dir: std::env::var("STATIC_DIR")
                 .unwrap_or_else(|_| "../frontend/dist".into()),
             tagging_dir: std::env::var("TAGGING_DIR")

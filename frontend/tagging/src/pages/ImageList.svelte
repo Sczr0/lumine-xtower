@@ -43,7 +43,7 @@
 
   const totalPages = $derived(Math.ceil(total / perPage));
 
-  const IMAGE_BASE = import.meta.env.VITE_IMAGE_BASE || 'https://images.xtower.site';
+  const IMAGE_BASE = import.meta.env.VITE_IMAGE_BASE || 'https://lumine-images.xtower.site';
   function imgUrl(p) {
     return `${IMAGE_BASE}/${p}`;
   }

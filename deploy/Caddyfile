@@ -8,7 +8,6 @@
 #                                                  /*    → 静态文件
 #   admin.lumine.xtower.site → CF Zero Trust → VPS Caddy → /admin/* → :3001
 #                                                          /*       → tagging 静态
-
 # ============================================================
 # 主站: lumine.xtower.site（被 CHAME CDN 回源）
 # ============================================================
@@ -56,31 +55,31 @@ lumine.xtower.site:80 {
 # 方案: 在 CF 面板 → SSL/TLS → Origin Server → 创建 Origin Certificate
 #       下载 cert.pem 和 key.pem，放到 /etc/caddy/certs/
 #
-admin.lumine.xtower.site:443 {
-    # CF Origin Certificate
-    tls /etc/caddy/certs/admin.lumine.xtower.site.pem \
-        /etc/caddy/certs/admin.lumine.xtower.site.key
-
-    # API（打标台调用）
-    handle /admin/* {
-        reverse_proxy localhost:3001 {
-            header_up Host {host}
-            header_up X-Forwarded-For {remote_host}
-            header_up X-Forwarded-Proto {scheme}
-        }
-    }
-
-    # 打标台 SPA
-    handle {
-        root * /opt/lumine/static/tagging
-        try_files {path} /index.html
-        file_server
-    }
-
-    log {
-        output file /var/log/caddy/admin.log {
-            roll_size 10MiB
-            roll_keep 3
-        }
-    }
-}
+#admin.lumine.xtower.site:443 {
+#    # CF Origin Certificate
+#    tls /etc/caddy/certs/admin.lumine.xtower.site.pem \
+#        /etc/caddy/certs/admin.lumine.xtower.site.key
+#
+#    # API（打标台调用）
+#    handle /admin/* {
+#        reverse_proxy localhost:3001 {
+#            header_up Host {host}
+#            header_up X-Forwarded-For {remote_host}
+#            header_up X-Forwarded-Proto {scheme}
+#        }
+#    }
+#
+#    # 打标台 SPA
+#    handle {
+#        root * /opt/lumine/static/tagging
+#        try_files {path} /index.html
+#        file_server
+#    }
+#
+#    log {
+#        output file /var/log/caddy/admin.log {
+#            roll_size 10MiB
+#            roll_keep 3
+#        }
+#    }
+#}

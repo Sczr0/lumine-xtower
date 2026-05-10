@@ -151,10 +151,8 @@
       await updateImage(slug, clean);
       saved = true;
       setTimeout(() => saved = false, 2000);
-      // 状态变更后刷新导航列表
       if (form.status && form.status !== img.status) {
         img = { ...img, status: form.status };
-        loadNavList(form.status);
       }
     } catch (e) {
       error = e.message;
@@ -166,31 +164,37 @@
   async function quickApprove() {
     form.status = 'approved';
     await save();
-    nextImage();
+    goNext();
   }
 
   async function quickReject() {
     form.status = 'rejected';
     await save();
-    nextImage();
+    goNext();
   }
 
-  function nextImage() {
+  function goNext() {
     if (currentIdx < navSlugs.length - 1) {
-      save().finally(() => {
-        slug = navSlugs[currentIdx + 1];
-        load();
-      });
+      slug = navSlugs[currentIdx + 1];
+      load();
     }
   }
 
-  function prevImage() {
+  function goPrev() {
     if (currentIdx > 0) {
-      save().finally(() => {
-        slug = navSlugs[currentIdx - 1];
-        load();
-      });
+      slug = navSlugs[currentIdx - 1];
+      load();
     }
+  }
+
+  async function nextImage() {
+    await save();
+    goNext();
+  }
+
+  async function prevImage() {
+    await save();
+    goPrev();
   }
 
   function handleKey(e) {
@@ -213,7 +217,7 @@
     return () => window.removeEventListener('keydown', handleKey);
   });
 
-  const IMAGE_BASE = import.meta.env.VITE_IMAGE_BASE || 'https://images.xtower.site';
+  const IMAGE_BASE = import.meta.env.VITE_IMAGE_BASE || 'https://lumine-images.xtower.site';
   function imgUrl(p) { return `${IMAGE_BASE}/${p}`; }
 </script>
 
