@@ -4,11 +4,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <BaseLayout title="首页">
   <section class="hero">
-    <div class="hero-glow"></div>
     <div class="container">
       <div class="hero-content">
         <h1 class="hero-title">Lumine</h1>
-        <p class="hero-sub">非官方的米哈游主题随机图片 API</p>
+        <p class="subtitle">非官方的米哈游主题随机图片 API</p>
       </div>
 
       <div class="card">
@@ -17,14 +16,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <div class="code-block">
           <pre><code>&lt;img src="https://lumine.xtower.site/v1/random" alt="随机图" /&gt;</code></pre>
           <button class="copy-btn" aria-label="复制">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
         </div>
         <p class="card-desc">或者获取 JSON 元数据：</p>
         <div class="code-block">
           <pre><code>GET https://lumine.xtower.site/v1/random?json=1&amp;game=genshin</code></pre>
           <button class="copy-btn" aria-label="复制">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
         </div>
       </div>
@@ -39,17 +38,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <tbody>
               <tr>
                 <td><code>json</code></td>
-                <td><span class="badge">bool</span></td>
+                <td><span class="badge badge-bool">bool</span></td>
                 <td>设为 <code>1</code> 返回 JSON，否则 302 跳转</td>
               </tr>
               <tr>
                 <td><code>game</code></td>
-                <td><span class="badge">string</span></td>
+                <td><span class="badge badge-string">string</span></td>
                 <td>筛选游戏：<code>genshin</code> / <code>hsr</code> / <code>zzz</code></td>
               </tr>
               <tr>
                 <td><code>orientation</code></td>
-                <td><span class="badge">string</span></td>
+                <td><span class="badge badge-string">string</span></td>
                 <td>筛选方向：<code>landscape</code> / <code>portrait</code> / <code>square</code></td>
               </tr>
             </tbody>
@@ -62,10 +61,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <div class="code-block">
           <pre><code>GET https://lumine.xtower.site/v1/categories</code></pre>
           <button class="copy-btn" aria-label="复制">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
         </div>
         <p class="card-desc">返回各游戏的图片数量统计。</p>
+      </div>
+
+      <div class="note">
+        <p>本服务为个人项目，所有图片版权归原作者或 miHoYo 所有。
+        <a href="/submit">投稿指南</a> · <a href="/terms">用户协议</a> · <a href="/privacy">隐私政策</a></p>
       </div>
     </div>
   </section>
@@ -73,70 +77,164 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <style>
   .hero {
-    position: relative;
-    padding: 4rem 0 3rem;
-    overflow: hidden;
-  }
-
-  .hero-glow {
-    position: absolute;
-    top: -20%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 700px;
-    height: 500px;
-    background: radial-gradient(ellipse, rgba(99, 102, 241, 0.08) 0%, transparent 60%);
-    pointer-events: none;
+    text-align: center;
   }
 
   .hero-content {
-    text-align: center;
-    padding: 3rem 0 2.5rem;
-    position: relative;
+    padding: 2.5rem 0 2rem;
   }
 
   .hero-title {
-    font-size: 3.5rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    letter-spacing: -0.04em;
-    line-height: 1.1;
-    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+    color: var(--color-text);
   }
 
-  .hero-sub {
-    font-size: 1.05rem;
-    color: var(--text-2);
+  .subtitle {
+    color: var(--color-text-muted);
+    font-size: 1rem;
     font-weight: 400;
+    line-height: 1.5;
+  }
+
+  .card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 1.75rem;
+    margin-bottom: 1.25rem;
+    text-align: left;
+  }
+
+  .card h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .card-desc {
+    color: var(--color-text-muted);
     font-size: 0.85rem;
-    color: var(--text-2);
     margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .code-block {
+    position: relative;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin: 0.5rem 0 0.75rem;
+  }
+  .code-block pre {
+    background: var(--color-code-bg);
+    padding: 0.85rem 1rem;
+    overflow-x: auto;
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    border: none;
+    border-radius: 0;
+  }
+  .code-block .copy-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-card);
+    border: none;
+    border-left: 1px solid var(--color-border);
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  .code-block .copy-btn:hover {
+    color: var(--color-text);
+    background: var(--color-bg);
+  }
+  .code-block .copy-btn.copied {
+    color: #22c55e;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    margin: 0.5rem 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  th {
+    padding: 0.6rem 0.85rem;
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--color-text-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg);
+  }
+
+  td {
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    font-size: 0.85rem;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tbody tr:hover td {
+    background: var(--color-primary-bg);
+  }
+
+  td code {
+    font-size: 0.78rem;
+    font-weight: 400;
+  }
+
+  .note {
+    padding: 1rem 0;
+    text-align: center;
+  }
+  .note p {
+    font-size: 0.8rem;
+    color: var(--color-text-subtle);
+    margin: 0;
+    line-height: 1.7;
+  }
+  .note a {
+    font-weight: 400;
   }
 
   @media (max-width: 768px) {
-    .hero {
-      padding: 2rem 0 2rem;
-    }
-
-    .hero-content {
-      padding: 1.5rem 0 1.5rem;
-    }
-
-    .hero-title {
-      font-size: 2.5rem;
-    }
-
-    .hero-sub {
-      font-size: 0.95rem;
-    }
+    .hero-content { padding: 1.5rem 0 1rem; }
+    .hero-title { font-size: 2rem; }
+    .card { padding: 1.25rem; }
+    .code-block pre { padding: 0.75rem 0.85rem; font-size: 0.78rem; }
+    th, td { padding: 0.5rem 0.65rem; font-size: 0.82rem; }
+    .note { text-align: left; }
   }
 </style>
 
 <script>
-  const COPY_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
-  const CHECK_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+  const COPY_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  const CHECK_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
 
   document.querySelectorAll('.code-block').forEach(block => {
     const btn = block.querySelector('.copy-btn');
