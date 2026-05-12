@@ -25,3 +25,4 @@ test.md
 deploy/DEPLOY.md
 tmp
 scripts/.artist_blacklist
+scripts/.pixiv_token
