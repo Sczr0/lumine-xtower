@@ -67,10 +67,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <p class="card-desc">返回各游戏的图片数量统计。</p>
       </div>
 
-      <div class="note">
-        <p>本服务为个人项目，所有图片版权归原作者或 miHoYo 所有。
-        <a href="/submit">投稿指南</a> · <a href="/terms">用户协议</a> · <a href="/privacy">隐私政策</a></p>
-      </div>
     </div>
   </section>
 </BaseLayout>
@@ -211,24 +207,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .note {
     padding: 1rem 0;
     text-align: center;
-  }
-  .note p {
-    font-size: 0.8rem;
-    color: var(--color-text-subtle);
-    margin: 0;
-    line-height: 1.7;
-  }
-  .note a {
-    font-weight: 400;
-  }
-
   @media (max-width: 768px) {
     .hero-content { padding: 1.5rem 0 1rem; }
     .hero-title { font-size: 2rem; }
     .card { padding: 1.25rem; }
     .code-block pre { padding: 0.75rem 0.85rem; font-size: 0.78rem; }
     th, td { padding: 0.5rem 0.65rem; font-size: 0.82rem; }
-    .note { text-align: left; }
   }
 </style>
 

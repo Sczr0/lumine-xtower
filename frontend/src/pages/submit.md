@@ -28,12 +28,62 @@ title: 投稿指南
 
 ## 投稿方式
 
-请通过飞书表单提交作品，审核通过后会自动入库。
+<div class="submit-action">
+  <p>请通过飞书表单提交作品，审核通过后会自动入库。</p>
 
-<a href="https://www.feishu.cn/" target="_blank" rel="noopener noreferrer" class="btn">
-  前往飞书表单投稿
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-</a>
+  <a class="feishu-cta" href="https://wcn90daksvah.feishu.cn/share/base/form/shrcnM8H3A9ppEx9wXAMWOKGdHf" target="_blank" rel="noopener noreferrer">
+    前往飞书表单
+    <svg class="arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+    </svg>
+  </a>
+</div>
+
+<style>
+  .submit-action p {
+    margin-bottom: 0.625rem;
+  }
+
+  .prose .feishu-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.625rem;
+    font-size: inherit;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .prose .feishu-cta:hover {
+    color: var(--text);
+    border-color: var(--border-hover);
+    background: var(--bg-hover);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  .prose .feishu-cta .arrow {
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+  }
+
+  .prose .feishu-cta:hover .arrow {
+    transform: translateX(3px);
+  }
+
+  @media (prefers-color-scheme: light) {
+    .prose .feishu-cta:hover {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+  }
+</style>
 
 > 审核周期一般为 1–3 个工作日。驳回后会通过您留下的联系方式告知原因。
 

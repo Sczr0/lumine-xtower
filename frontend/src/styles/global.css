@@ -23,7 +23,7 @@
   --accent-subtle: rgba(0, 112, 243, 0.12);
 
   /* Typography */
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font: 'Source Han Sans & Saira Hybrid', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Roboto Mono', 'Consolas', monospace;
 
   /* Radius */
