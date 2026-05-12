@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
   site: 'https://lumine.xtower.site',
@@ -6,4 +7,5 @@ export default defineConfig({
   build: {
     assets: '_assets',
   },
+  integrations: [sitemap()],
 });

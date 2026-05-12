@@ -2,9 +2,27 @@
 interface Props {
   title: string;
   description?: string;
+  keywords?: string;
 }
 
-const { title, description = 'Lumine — 米哈游随机图 API' } = Astro.props;
+const { title, description = 'Lumine — 米哈游主题随机图片 API 服务平台', keywords } = Astro.props;
+const siteUrl = 'https://lumine.xtower.site';
+const fullTitle = `${title} — Lumine`;
+const ogImage = `${siteUrl}/og-image.svg`;
+const ldJson = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Lumine',
+  url: siteUrl,
+  description,
+  applicationCategory: 'Multimedia',
+  operatingSystem: 'All',
+  author: {
+    '@type': 'Person',
+    name: '塔弦空间站',
+    url: siteUrl,
+  },
+});
 ---
 
 <!doctype html>
@@ -13,16 +31,30 @@ const { title, description = 'Lumine — 米哈游随机图 API' } = Astro.props
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
-    <title>{title} — Lumine</title>
+    {keywords && <meta name="keywords" content={keywords} />}
+    <title>{fullTitle}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={Astro.url.href} />
     <link rel="stylesheet" href="/fonts/hybrid/result.css" />
     <link rel="stylesheet" href="/styles/global.css" />
     <script defer src="https://cloud.umami.is/script.js" data-website-id="73287722-6bf8-41ae-8fa6-db1d808a9528"></script>
-    <meta property="og:title" content={`${title} — Lumine`} />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={Astro.url.href} />
     <meta property="og:site_name" content="Lumine" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="zh_CN" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <script type="application/ld+json" set:html={ldJson}></script>
   </head>
   <body>
     <header class="header">

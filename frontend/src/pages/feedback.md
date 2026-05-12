@@ -1,6 +1,8 @@
 ---
 layout: ../layouts/LegalLayout.astro
 title: 内容反馈
+description: Lumine 图片内容反馈渠道。如发现 AI 未标注、标签错误、内容违规或版权问题，可通过邮箱提交反馈，3-5 个工作日处理。
+keywords: 反馈,举报,版权投诉,AI图片,标签错误,米哈游
 ---
 
 本服务收录的图片数量较大，审核难免有遗漏。如果您发现以下问题，欢迎反馈。

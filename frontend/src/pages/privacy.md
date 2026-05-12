@@ -1,6 +1,7 @@
 ---
 layout: ../layouts/LegalLayout.astro
 title: 隐私政策
+description: Lumine 隐私政策 — 遵循最小必要原则，不主动收集个人身份信息，不使用 Cookie，不提供注册功能。透明公开的数据处理说明。
 ---
 
 # 隐私政策

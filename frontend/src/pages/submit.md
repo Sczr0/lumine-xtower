@@ -1,6 +1,8 @@
 ---
 layout: ../layouts/LegalLayout.astro
 title: 投稿指南
+description: 向 Lumine 投稿米哈游主题图片的须知、要求和方式。支持原神、星穹铁道、绝区零等游戏的高清壁纸。审核周期 1-3 个工作日。
+keywords: 投稿,米哈游,原神,星穹铁道,绝区零,图片,壁纸,版权
 ---
 
 > ### 投稿须知

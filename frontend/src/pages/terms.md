@@ -1,6 +1,7 @@
 ---
 layout: ../layouts/LegalLayout.astro
 title: 用户协议
+description: Lumine 用户协议 — 非商业免费个人项目，与 miHoYo/HoYoverse 无官方关联。详细说明服务条款、用户行为准则、知识产权及免责声明。
 ---
 
 # 用户协议
