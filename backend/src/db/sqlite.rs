@@ -46,13 +46,21 @@ impl SqliteRepo {
             }
         }
 
-        // 使用 SqliteConnectOptions 精确控制，避免 URL 解析差异
+        // WAL 模式 + 性能 pragmas
         let conn_opts = SqliteConnectOptions::from_str(database_url)
             .unwrap_or_else(|_| SqliteConnectOptions::new().filename(db_path))
-            .create_if_missing(true);
+            .create_if_missing(true)
+            .pragma("journal_mode", "WAL")
+            .pragma("busy_timeout", "5000")
+            .pragma("synchronous", "NORMAL")
+            .pragma("cache_size", "-64000")
+            .pragma("foreign_keys", "ON");
 
         let pool = SqlitePoolOptions::new()
-            .max_connections(1)
+            .max_connections(4)
+            .min_connections(1)
+            .acquire_timeout(std::time::Duration::from_secs(5))
+            .idle_timeout(std::time::Duration::from_secs(300))
             .connect_with(conn_opts)
             .await?;
 
@@ -120,42 +128,39 @@ impl ImageRepository for SqliteRepo {
     // ========== 公开 API ==========
 
     async fn random(&self, query: &RandomQuery) -> Result<ImageRecord, AppError> {
+        use sqlx::QueryBuilder;
+
         let rn: f64 = rand::random();
 
-        let mut where_clause = String::from("status = 'approved'");
-        if query.game.is_some() {
-            where_clause.push_str(" AND game = ?");
-        }
-        if query.orientation.is_some() {
-            where_clause.push_str(" AND orientation = ?");
-        }
-
         // 查询 1: >= 随机 key
-        let sql1 = format!(
-            "SELECT {SELECT_FIELDS} FROM images WHERE {where_clause} AND random_key >= ? \
-             ORDER BY random_key ASC LIMIT 1"
-        );
-        let mut q1 = sqlx::query_as::<_, ImageRecord>(&sql1);
-        if let Some(ref g) = query.game { q1 = q1.bind(g); }
-        if let Some(ref o) = query.orientation { q1 = q1.bind(o); }
-        q1 = q1.bind(rn);
-
-        if let Some(row) = q1.fetch_optional(&self.pool).await? {
-            return Ok(row);
+        {
+            let mut qb = QueryBuilder::<sqlx::Sqlite>::new("SELECT ");
+            qb.push(SELECT_FIELDS)
+              .push(" FROM images WHERE status = 'approved'");
+            if let Some(ref g) = query.game { qb.push(" AND game = ").push_bind(g); }
+            if let Some(ref o) = query.orientation { qb.push(" AND orientation = ").push_bind(o); }
+            qb.push(" AND random_key >= ").push_bind(rn)
+              .push(" ORDER BY random_key ASC LIMIT 1");
+            if let Some(row) = qb.build_query_as::<ImageRecord>()
+                .fetch_optional(&self.pool).await?
+            {
+                return Ok(row);
+            }
         }
 
-        // 查询 2: 回补
-        let sql2 = format!(
-            "SELECT {SELECT_FIELDS} FROM images WHERE {where_clause} \
-             ORDER BY random_key ASC LIMIT 1"
-        );
-        let mut q2 = sqlx::query_as::<_, ImageRecord>(&sql2);
-        if let Some(ref g) = query.game { q2 = q2.bind(g); }
-        if let Some(ref o) = query.orientation { q2 = q2.bind(o); }
-
-        q2.fetch_optional(&self.pool)
-            .await?
-            .ok_or_else(|| AppError::NotFound("no images match the criteria".into()))
+        // 查询 2: 回补（key 最小的那条）
+        {
+            let mut qb = QueryBuilder::<sqlx::Sqlite>::new("SELECT ");
+            qb.push(SELECT_FIELDS)
+              .push(" FROM images WHERE status = 'approved'");
+            if let Some(ref g) = query.game { qb.push(" AND game = ").push_bind(g); }
+            if let Some(ref o) = query.orientation { qb.push(" AND orientation = ").push_bind(o); }
+            qb.push(" ORDER BY random_key ASC LIMIT 1");
+            qb.build_query_as::<ImageRecord>()
+                .fetch_optional(&self.pool)
+                .await?
+                .ok_or_else(|| AppError::NotFound("no images match the criteria".into()))
+        }
     }
 
     async fn categories(&self) -> Result<Vec<Category>, AppError> {
@@ -171,33 +176,39 @@ impl ImageRepository for SqliteRepo {
     // ========== Admin API ==========
 
     async fn list_images(&self, query: &ImageQuery) -> Result<PaginatedImages, AppError> {
+        use sqlx::QueryBuilder;
+
         let page = query.page.unwrap_or(1).max(1);
         let per_page = query.per_page.unwrap_or(50).min(200);
         let offset = (page - 1) * per_page;
-        let has = query.status.is_some();
 
-        let total: i64 = if has {
+        let total: i64 = if let Some(ref status) = query.status {
             sqlx::query_scalar("SELECT COUNT(*) FROM images WHERE status = ?")
-                .bind(query.status.as_ref().unwrap())
+                .bind(status)
                 .fetch_one(&self.pool).await?
         } else {
             sqlx::query_scalar("SELECT COUNT(*) FROM images")
                 .fetch_one(&self.pool).await?
         };
 
-        let images = if has {
-            sqlx::query_as::<_, ImageRecord>(&format!(
-                "SELECT {SELECT_FIELDS} FROM images WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
-            ))
-            .bind(query.status.as_ref().unwrap())
-            .bind(per_page as i64).bind(offset as i64)
-            .fetch_all(&self.pool).await?
+        let images = if let Some(ref status) = query.status {
+            let mut qb = QueryBuilder::new("SELECT ");
+            qb.push(SELECT_FIELDS)
+              .push(" FROM images WHERE status = ")
+              .push_bind(status)
+              .push(" ORDER BY created_at DESC LIMIT ")
+              .push_bind(per_page as i64)
+              .push(" OFFSET ")
+              .push_bind(offset as i64);
+            qb.build_query_as::<ImageRecord>().fetch_all(&self.pool).await?
         } else {
-            sqlx::query_as::<_, ImageRecord>(&format!(
-                "SELECT {SELECT_FIELDS} FROM images ORDER BY created_at DESC LIMIT ? OFFSET ?"
-            ))
-            .bind(per_page as i64).bind(offset as i64)
-            .fetch_all(&self.pool).await?
+            let mut qb = QueryBuilder::new("SELECT ");
+            qb.push(SELECT_FIELDS)
+              .push(" FROM images ORDER BY created_at DESC LIMIT ")
+              .push_bind(per_page as i64)
+              .push(" OFFSET ")
+              .push_bind(offset as i64);
+            qb.build_query_as::<ImageRecord>().fetch_all(&self.pool).await?
         };
 
         Ok(PaginatedImages { images, total, page, per_page })
@@ -214,77 +225,40 @@ impl ImageRepository for SqliteRepo {
     }
 
     async fn update_image(&self, slug: &str, update: &ImageUpdate) -> Result<(), AppError> {
-        self.get_image(slug).await?;
+        use sqlx::QueryBuilder;
 
-        let mut set_clauses: Vec<&str> = Vec::new();
-        let mut b_null_s: Vec<Option<String>> = Vec::new();
-        let mut b_null_i: Vec<Option<i32>> = Vec::new();
-        let mut b_req_s: Vec<String> = Vec::new();
-        let mut b_req_i: Vec<i32> = Vec::new();
-        let mut b_req_b: Vec<bool> = Vec::new();
+        let mut qb: QueryBuilder<'_, sqlx::Sqlite> = QueryBuilder::new("UPDATE images SET ");
+        let mut separated = qb.separated(", ");
 
-        for (cl, v) in &[
-            ("characters = ?", &update.characters),
-            ("tags = ?", &update.tags),
-            ("dominant_color = ?", &update.dominant_color),
-            ("source_url = ?", &update.source_url),
-            ("artist = ?", &update.artist),
-            ("review_comment = ?", &update.review_comment),
-            ("blurhash = ?", &update.blurhash),
-            ("thumbnail_path = ?", &update.thumbnail_path),
-        ] {
-            if let Some(ref vv) = v {
-                set_clauses.push(cl);
-                b_null_s.push(vv.clone());
-            }
-        }
+        let mut field_count = 0;
+        if let Some(ref v) = update.characters { separated.push("characters = ").push_bind(v.as_deref()); field_count += 1; }
+        if let Some(ref v) = update.tags { separated.push("tags = ").push_bind(v.as_deref()); field_count += 1; }
+        if let Some(ref v) = update.dominant_color { separated.push("dominant_color = ").push_bind(v.as_deref()); field_count += 1; }
+        if let Some(ref v) = update.source_url { separated.push("source_url = ").push_bind(v.as_deref()); field_count += 1; }
+        if let Some(ref v) = update.artist { separated.push("artist = ").push_bind(v.as_deref()); field_count += 1; }
+        if let Some(ref v) = update.review_comment { separated.push("review_comment = ").push_bind(v.as_deref()); field_count += 1; }
+        if let Some(ref v) = update.blurhash { separated.push("blurhash = ").push_bind(v.as_deref()); field_count += 1; }
+        if let Some(ref v) = update.thumbnail_path { separated.push("thumbnail_path = ").push_bind(v.as_deref()); field_count += 1; }
+        if let Some(v) = update.hue { separated.push("hue = ").push_bind(v); field_count += 1; }
+        if let Some(v) = update.saturation { separated.push("saturation = ").push_bind(v); field_count += 1; }
+        if let Some(v) = update.value { separated.push("value = ").push_bind(v); field_count += 1; }
+        if let Some(ref v) = update.game { separated.push("game = ").push_bind(v); field_count += 1; }
+        if let Some(ref v) = update.orientation { separated.push("orientation = ").push_bind(v); field_count += 1; }
+        if let Some(ref v) = update.source_type { separated.push("source_type = ").push_bind(v); field_count += 1; }
+        if let Some(ref v) = update.authorization { separated.push("authorization = ").push_bind(v); field_count += 1; }
+        if let Some(ref v) = update.status { separated.push("status = ").push_bind(v); field_count += 1; }
+        if let Some(v) = update.weight { separated.push("weight = ").push_bind(v); field_count += 1; }
+        if let Some(v) = update.is_ai { separated.push("is_ai = ").push_bind(v); field_count += 1; }
 
-        for (cl, v) in &[
-            ("hue = ?", &update.hue),
-            ("saturation = ?", &update.saturation),
-            ("value = ?", &update.value),
-        ] {
-            if let Some(ref vv) = v {
-                set_clauses.push(cl);
-                b_null_i.push(*vv);
-            }
-        }
-
-        for (cl, v) in &[
-            ("game = ?", &update.game),
-            ("orientation = ?", &update.orientation),
-            ("source_type = ?", &update.source_type),
-            ("authorization = ?", &update.authorization),
-            ("status = ?", &update.status),
-        ] {
-            if let Some(ref vv) = v {
-                set_clauses.push(cl);
-                b_req_s.push(vv.clone());
-            }
-        }
-
-        if let Some(ref v) = update.weight {
-            set_clauses.push("weight = ?");
-            b_req_i.push(*v);
-        }
-        if let Some(ref v) = update.is_ai {
-            set_clauses.push("is_ai = ?");
-            b_req_b.push(*v);
-        }
-
-        if set_clauses.is_empty() {
+        if field_count == 0 {
             return Err(AppError::BadRequest("no fields to update".into()));
         }
 
-        let sql = format!("UPDATE images SET {} WHERE slug = ?", set_clauses.join(", "));
-        let mut q = sqlx::query(&sql);
-        for v in &b_null_s { q = q.bind(v.as_deref()); }
-        for v in &b_null_i { q = q.bind(*v); }
-        for v in &b_req_s { q = q.bind(v); }
-        for v in &b_req_i { q = q.bind(v); }
-        for v in &b_req_b { q = q.bind(v); }
-        q = q.bind(slug);
-        q.execute(&self.pool).await?;
+        qb.push(" WHERE slug = ").push_bind(slug);
+        let result = qb.build().execute(&self.pool).await?;
+        if result.rows_affected() == 0 {
+            return Err(AppError::NotFound(format!("image `{slug}` not found")));
+        }
         Ok(())
     }
 

@@ -32,6 +32,60 @@
   let navSlugs = $state([]);
   let currentIdx = $state(-1);
 
+  const PRELOAD_AHEAD = 3;
+  const PRELOAD_BEHIND = 1;
+  const preloadCache = new Map();
+
+  function applyFormData(data) {
+    img = data;
+    form = {
+      game: data.game || '',
+      characters: parseList(data.characters),
+      tags: parseList(data.tags),
+      dominant_color: data.dominant_color || '',
+      hue: data.hue != null ? String(data.hue) : '',
+      saturation: data.saturation != null ? String(data.saturation) : '',
+      value: data.value != null ? String(data.value) : '',
+      orientation: data.orientation || '',
+      source_type: data.source_type || '',
+      source_url: data.source_url || '',
+      artist: data.artist || '',
+      authorization: data.authorization || '',
+      is_ai: data.is_ai || false,
+      weight: data.weight ?? 100,
+      status: data.status || '',
+      review_comment: data.review_comment || '',
+    };
+  }
+
+  function preloadImageFile(path) {
+    const url = imgUrl(path);
+    const image = new Image();
+    image.src = url;
+  }
+
+  async function preloadOne(slug) {
+    if (!slug || preloadCache.has(slug)) return;
+    try {
+      const data = await getImage(slug);
+      preloadCache.set(slug, data);
+      if (data.path) preloadImageFile(data.path);
+    } catch {
+      /* silently fail for preloads */
+    }
+  }
+
+  function preloadAround() {
+    if (navSlugs.length === 0 || currentIdx < 0) return;
+    const start = Math.max(0, currentIdx - PRELOAD_BEHIND);
+    const end = Math.min(navSlugs.length, currentIdx + PRELOAD_AHEAD + 1);
+    for (let i = start; i < end; i++) {
+      if (i !== currentIdx) {
+        preloadOne(navSlugs[i]);
+      }
+    }
+  }
+
   async function loadNavList(status) {
     try {
       const params = { per_page: 9999 };
@@ -50,33 +104,28 @@
   }
 
   async function load() {
-    loading = true; error = ''; saved = false;
+    error = ''; saved = false;
+
+    const cached = preloadCache.get(slug);
+    if (cached) {
+      applyFormData(cached);
+      currentIdx = navSlugs.indexOf(slug);
+      loading = false;
+      preloadAround();
+      return;
+    }
+
+    loading = true;
     try {
       const data = await getImage(slug);
-      img = data;
+      preloadCache.set(slug, data);
+      applyFormData(data);
       loadNavList(data.status);
-      form = {
-        game: data.game || '',
-        characters: parseList(data.characters),
-        tags: parseList(data.tags),
-        dominant_color: data.dominant_color || '',
-        hue: data.hue != null ? String(data.hue) : '',
-        saturation: data.saturation != null ? String(data.saturation) : '',
-        value: data.value != null ? String(data.value) : '',
-        orientation: data.orientation || '',
-        source_type: data.source_type || '',
-        source_url: data.source_url || '',
-        artist: data.artist || '',
-        authorization: data.authorization || '',
-        is_ai: data.is_ai || false,
-        weight: data.weight ?? 100,
-        status: data.status || '',
-        review_comment: data.review_comment || '',
-      };
     } catch (e) {
       error = e.message;
     } finally {
       loading = false;
+      preloadAround();
     }
   }
 
@@ -154,6 +203,7 @@
       if (form.status && form.status !== img.status) {
         img = { ...img, status: form.status };
       }
+      preloadCache.delete(slug);
     } catch (e) {
       error = e.message;
     } finally {

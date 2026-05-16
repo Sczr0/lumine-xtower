@@ -70,6 +70,64 @@ BLACKLIST_FILE = Path(__file__).parent / ".artist_blacklist"
 
 HOYOWIKI_API = "https://sg-wiki-api.hoyolab.com/hoyowiki/wapi/get_entry_page_list"
 
+# 角色名缓存文件 (独立 JSON，方便加新角色)
+CHARACTER_FILE = Path(__file__).parent / "characters.json"
+
+# 在 API 不可用时使用的角色名
+FALLBACK_CHARACTERS = {
+    "genshin": [
+        "旅人", "蛍", "空", "パイモン",
+        "胡桃", "鍾離", "タルタリヤ", "万葉", "神里綾華", "神里綾人",
+        "雷電将軍", "八重神子", "ナヒーダ", "ニィロウ", "久岐忍",
+        "楓原万葉", "荒瀧一斗", "クレー", "アルベド", "アモス",
+        "ガイア", "ジン", "リサ", "モナ", "ディルック", "ウェンティ",
+        "フィッシュル", "ベネット", "ノエル", "レザー", "スクロース",
+        "ディオナ", "星菫", "煙緋", "宵宮", "早柚", "珊瑚宮心海",
+        "五郎", "申鶴", "雲菫", "夜蘭", "鹿野院平蔵", "綺良々",
+        "リオセスリ", "フリーナ", "ヌヴィレット", "ナヴィア",
+        "シュヴルーズ", "ガミン", "千織", "嘉明", "シグウィン",
+        "エミリエ", "ムアニ", "カチーナ", "キィニチ", "マヴィカ",
+        "シトラリ", "オロルン", "藍硯", "夢見月瑞希", "ヴァレサ",
+        "イアンサ", "イファ", "スカーク", "タリヤ", "エコー",
+        "ファルザン", "ドリー", "カーヴェ", "リネ", "リネット",
+        "エルヘイゼン", "ディシア", "ミカ", "バーバラ", "香菱",
+        "行秋", "重雲", "凝光", "北斗", "刻晴", "七七", "甘雨",
+        "アンバー", "ケーア", "辛炎", "ロサリア", "エウルア",
+        "白朮", "コレイ", "タイナリ", "セノ",
+    ],
+    "hsr": [
+        "開拓者", "三月なのか", "ダン・ヘン", "姫子", "ヴェルト",
+        "銀狼", "カフカ", "刃", "丹恒・飲月",
+        "景元", "彦卿", "符玄", "停雲", "白露", "虎克", "ナターシャ",
+        "サンポ", "ペラ", "セーバル", "アスター", "アルラン",
+        "クラーラ", "大クラーラ", "スヴァローグ",
+        "青雀", "素裳", "羅刹", "リョン",
+        "鏡流", "トパーズ", "雪衣", "寒鴉", "ミーシャ",
+        "ブラックスワン", "花火", "サム", "黄泉",
+        "アベンチュリン", "ギャラガー", "ロビン", "ブートヒル",
+        "ホタル", "ジェイド", "雲璃", "椒丘", "飛霄",
+        "霊砂", "乱破", "日曜日", "忘帰人",
+        "ヘルタ", "アグライア", "トリビー", "マァイデイ",
+        "アナクサ", "カストリス", "ハイアシン", "サイファー",
+        "フェイシャオ", "ユンリ", "リンシャ",
+    ],
+    "zzz": [
+        "アンビー", "ニコ", "ビリー", "ネコマタ", "ライカン",
+        "コレダ", "グレース", "アンドレア", "リナ", "ベン",
+        "コリン", "アントン", "蒼角", "エレン", "朱鳶",
+        "青衣", "ジェーン", "シーザー", "バーニス", "ルーシー",
+        "パイパー", "セス", "柳", "ハルマサ", "ヤオ",
+        "エヴリン", "アストラ", "ソウカク", "琴",
+    ],
+    "honkai3": [
+        "キアナ", "雷電芽衣", "ブローニャ", "ゼーレ", "ブリジット",
+        "フック", "ジョイス", "テレサ", "御神しまや",
+        "八重桜", "フカ", "リタ", "ドゥルダル",
+        "Elysia", "エルシア", "アポニア", "ヴィルヴ",
+        "エディー", "カレン", "スー", "セレナ",
+    ],
+}
+
 HOYOWIKI_MENU_IDS = {
     "genshin": "2",
     "hsr": "20",
@@ -226,65 +284,85 @@ def save_downloaded_id(output_dir: str, illust_id):
 
 
 def fetch_character_names(game_key: str) -> list[str]:
-    """从 HoYoWiki 获取角色名称列表"""
-    import httpx
+    """获取角色名列表 — API 优先，characters.json 和内置列表作为降级"""
+    # 仅原神能通过 API 获取（其他游戏的 menu_id 已失效）
+    if game_key == "genshin":
+        import httpx
+        all_names = []
+        page_num = 1
+        per_page = 50
 
-    menu_id = HOYOWIKI_MENU_IDS.get(game_key)
-    if not menu_id:
-        return []
+        client = httpx.Client(http2=False, timeout=30)
 
-    all_names = []
-    page_num = 1
-    per_page = 50
+        try:
+            while True:
+                try:
+                    resp = client.post(
+                        HOYOWIKI_API,
+                        json={
+                            "filters": [],
+                            "menu_id": menu_id,
+                            "page_num": page_num,
+                            "page_size": per_page,
+                        },
+                        headers={
+                            "Content-Type": "application/json",
+                            "x-rpc-wiki_app": "hoyowiki",
+                            "x-rpc-language": "zh-cn",
+                            "Referer": "https://wiki.hoyolab.com/",
+                            "Origin": "https://wiki.hoyolab.com",
+                        },
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                except Exception as e:
+                    print(f"  HoYoWiki API 请求失败: {e}")
+                    break
 
-    client = httpx.Client(http2=False, timeout=30)
+                if data.get("retcode") != 0:
+                    break
 
+                entries = data.get("data", {}).get("list", [])
+                if not entries:
+                    break
+
+                for entry in entries:
+                    name = entry.get("name", "")
+                    if name:
+                        all_names.append(name)
+
+                if len(entries) < per_page:
+                    break
+                page_num += 1
+                time.sleep(0.3)
+        finally:
+            client.close()
+
+        if all_names:
+            print(f"  从 HoYoWiki API 获取 ({len(all_names)} 个角色)")
+            return all_names
+
+    # API 失败 → 尝试 characters.json
+    char_file = Path(__file__).parent / "characters.json"
     try:
-        while True:
-            try:
-                resp = client.post(
-                    HOYOWIKI_API,
-                    json={
-                        "filters": [],
-                        "menu_id": menu_id,
-                        "page_num": page_num,
-                        "page_size": per_page,
-                    },
-                    headers={
-                        "Content-Type": "application/json",
-                        "x-rpc-wiki_app": "hoyowiki",
-                        "x-rpc-language": "zh-cn",
-                        "Referer": "https://wiki.hoyolab.com/",
-                        "Origin": "https://wiki.hoyolab.com",
-                    },
-                )
-                resp.raise_for_status()
-                data = resp.json()
-            except Exception as e:
-                print(f"  HoYoWiki API 请求失败: {e}")
-                break
+        if char_file.exists():
+            import json as _json
+            data = _json.loads(char_file.read_text(encoding="utf-8"))
+            names = data.get(game_key)
+            if names:
+                print(f"  从 characters.json 加载 ({len(names)} 个角色)")
+                return names
+    except Exception as e:
+        print(f"  characters.json 加载失败: {e}")
 
-            if data.get("retcode") != 0:
-                break
+    # 最终降级到内置列表
+    hardcoded = FALLBACK_CHARACTERS.get(game_key)
+    if hardcoded:
+        print(f"  使用内置角色列表 ({len(hardcoded)} 个角色)")
+        return hardcoded
 
-            entries = data.get("data", {}).get("list", [])
-            if not entries:
-                break
-
-            for entry in entries:
-                name = entry.get("name", "")
-                if name:
-                    all_names.append(name)
-
-            if len(entries) < per_page:
-                break
-            page_num += 1
-            time.sleep(0.3)
-    finally:
-        client.close()
-
-    return all_names
-
+    print(f"  未找到 {game_key} 的角色列表")
+    return []
 
 def crawl_by_tag(api: AppPixivAPI, tag: str, count: int, output_dir: str, sort: str = "popular_desc", blacklist: set | None = None) -> int:
     """按标签搜索并下载"""

@@ -105,7 +105,7 @@ def process_one(args: tuple) -> tuple | None:
     处理单张图片（可在 ProcessPoolExecutor 中运行）。
     返回 SQLite 行元组，或 None（跳过）。
     """
-    filepath, game, source_type, status, output_dir, thumb_size_str, quality, thumb_quality, existing_md5 = args
+    filepath, game, source_type, status, output_dir, thumb_size_str, quality, thumb_quality, existing_md5, existing_source_urls = args
 
     fpath = Path(filepath)
     if fpath.suffix.lower() not in IMAGE_EXTENSIONS:
@@ -137,7 +137,11 @@ def process_one(args: tuple) -> tuple | None:
     icc = img.info.get("icc_profile")
 
     # 转 RGB（WebP 不支持 CMYK/ RGBA 等）
-    if img.mode != "RGB":
+    if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+        background = Image.new("RGB", img.size, (255, 255, 255))
+        background.paste(img, mask=img.convert("RGBA").split()[3])
+        img = background
+    elif img.mode != "RGB":
         img = img.convert("RGB")
 
     # BlurHash 生成
@@ -166,7 +170,7 @@ def process_one(args: tuple) -> tuple | None:
 
     # ── 生成缩略图（智能中心裁剪） ──
     tw, th = map(int, thumb_size_str.split("x"))
-    thumb = ImageOps.fit(img, (tw, th), centering=(0.5, 0.5))
+    thumb = ImageOps.fit(img, (tw, th), centering=(0.5, 0.5), resampling=Image.Resampling.LANCZOS)
     out_thumb = Path(output_dir) / thumb_path
     out_thumb.parent.mkdir(parents=True, exist_ok=True)
     thumb.save(out_thumb, "WEBP", quality=thumb_quality, icc_profile=icc)
@@ -184,6 +188,9 @@ def process_one(args: tuple) -> tuple | None:
     if source_type == "pixiv" and stem.startswith("pixiv_"):
         pixiv_id = stem[6:]  # "144589079"
         source_url = f"https://www.pixiv.net/artworks/{pixiv_id}"
+        # 按来源 URL 去重：同作品不同版本的 Pixiv 文件不会重复导入
+        if source_url in existing_source_urls:
+            return None
 
         # 尝试读取 JSON 元数据
         import json as _json
@@ -233,20 +240,24 @@ def process_one(args: tuple) -> tuple | None:
 # ─── 数据库写入 ───────────────────────────────────────
 
 
-def load_existing_md5(db_path: str, source_dir: str = None) -> set:
-    """加载已存在的 MD5（数据库 + 源目录导入日志）"""
-    existing = set()
+def load_existing_md5_and_source_urls(db_path: str, source_dir: str = None) -> tuple:
+    """加载已存在的 MD5 和 source_url（双路去重）"""
+    md5_set = set()
+    url_set = set()
     if os.path.exists(db_path):
         conn = sqlite3.connect(db_path)
-        cur = conn.execute("SELECT md5_hash FROM images WHERE md5_hash IS NOT NULL")
-        existing = {row[0] for row in cur.fetchall()}
+        rows = conn.execute("SELECT md5_hash, source_url FROM images").fetchall()
+        for r in rows:
+            if r[0]:
+                md5_set.add(r[0])
+            if r[1]:
+                url_set.add(r[1])
         conn.close()
-    # 第二道防线：源目录的导入日志（独立于数据库，防止记录被删后重复导入）
     if source_dir:
         journal = Path(source_dir) / ".imported_md5"
         if journal.exists():
-            existing |= set(journal.read_text().splitlines())
-    return existing
+            md5_set |= set(journal.read_text().splitlines())
+    return md5_set, url_set
 
 
 def save_source_journal(source_dir: str, md5s: list):
@@ -377,16 +388,16 @@ def main():
     if not files:
         return
 
-    # 加载已存在的 MD5（数据库 + 源目录日志）
-    existing_md5 = load_existing_md5(args.db, args.directory) if not args.dry_run else set()
-    print(f"已有 {len(existing_md5)} 个 MD5 (去重用)")
+    # 加载已存在的 MD5 + source_url（双路去重）
+    existing_md5, existing_source_urls = load_existing_md5_and_source_urls(args.db, args.directory) if not args.dry_run else (set(), set())
+    print(f"已有 {len(existing_md5)} 个 MD5, {len(existing_source_urls)} 个来源 (去重用)")
 
     # 并行处理
     worker_args = [
         (
             f, args.game, args.source_type, args.status,
             args.output_dir, args.thumb_size, args.quality,
-            args.thumb_quality, existing_md5,
+            args.thumb_quality, existing_md5, existing_source_urls,
         )
         for f in files
     ]

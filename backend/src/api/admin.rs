@@ -6,6 +6,7 @@ use axum::{
     Json, Router,
 };
 use std::sync::Arc;
+use tower_http::limit::RequestBodyLimitLayer;
 
 use crate::error::AppError;
 use crate::models::{ImageQuery, ImageUpdate, PaginatedImages};
@@ -17,23 +18,26 @@ async fn auth_middleware(
     req: axum::extract::Request,
     next: middleware::Next,
 ) -> Result<impl IntoResponse, StatusCode> {
+    // 方式 1: Cloudflare Zero Trust 鉴权
     if let Some(email) = headers.get("Cf-Access-Authenticated-User-Email") {
-        if !email.to_str().unwrap_or("").is_empty() {
+        if !email.to_str().unwrap_or_default().is_empty() {
             return Ok(next.run(req).await);
         }
     }
-    let admin_token = std::env::var("ADMIN_TOKEN").ok();
-    if let Some(expected) = admin_token {
-        if let Some(auth) = headers.get("Authorization") {
-            if let Ok(val) = auth.to_str() {
-                if val == format!("Bearer {expected}") {
-                    return Ok(next.run(req).await);
-                }
+    // 方式 2: Bearer token 鉴权（必须配置 ADMIN_TOKEN 才会生效）
+    match std::env::var("ADMIN_TOKEN") {
+        Ok(expected) if !expected.is_empty() => {
+            let auth_val = headers
+                .get("Authorization")
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("");
+            if auth_val == format!("Bearer {expected}") {
+                return Ok(next.run(req).await);
             }
+            Err(StatusCode::UNAUTHORIZED)
         }
-        return Err(StatusCode::UNAUTHORIZED);
+        _ => Err(StatusCode::UNAUTHORIZED),
     }
-    Ok(next.run(req).await)
 }
 
 pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
@@ -43,6 +47,7 @@ pub fn routes(state: Arc<AppState>) -> Router<Arc<AppState>> {
         .route("/admin/images/:slug", axum::routing::patch(update_image))
         .route("/admin/stats", axum::routing::get(stats))
         .route_layer(middleware::from_fn(auth_middleware))
+        .layer(RequestBodyLimitLayer::new(1024 * 1024)) // 1MB 限制
         .with_state(state)
 }
 
